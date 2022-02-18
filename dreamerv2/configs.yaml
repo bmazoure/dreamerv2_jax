@@ -1,0 +1,239 @@
+defaults:
+
+  # Train Script
+  logdir: /tmp/dreamer_test/
+  task: mw_ML45
+  envs: 2
+  async_envs: True
+  wandb_key: none
+  wandb_entity: pretrained-world-models
+  wandb_project: pretrained-models
+  wandb_mode: disabled
+  wandb_run_id: dreamerv2
+  seed: 0
+  render_size: [64, 64]
+  dmc_camera: corner3
+  obs_type: pixels
+  atari_grayscale: True
+  time_limit: 0
+  action_repeat: 1
+  steps: 1e8
+  framestack: 1
+  log_every: 1e4
+  eval_every: 1e5
+  eval_eps: 1
+  prefill: 1000
+  pretrain: 1
+  train_every: 5
+  train_steps: 1
+  expl_until: 0
+  half_precision: False
+  replay: {capacity: 2e6, prioritized: False, persistent: False}
+  dataset: {batch: 16, length: 50}
+  log_keys_video: ['image']
+  log_keys_sum: '^$'
+  log_keys_mean: '^$'
+  log_keys_max: '^$'
+  precision: 16
+
+  data_aug: False
+  jit: True
+  profile: False
+  start_task: 0
+  n_tasks: 0
+
+  # Agent
+  clip_rewards: tanh
+  expl_behavior: greedy
+  expl_noise: 0.0
+  eval_noise: 0.0
+  eval_state_mean: False
+
+  # World Model
+  grad_heads: [decoder, reward, discount]
+  pred_discount: True
+  rssm: {ensemble: 1, mlp_hidden: 1024, gru_hidden: 1024, gru_layers: 2, stoch: 32, discrete: 32, act: elu, norm: False, std_act: sigmoid2, min_std: 0.1}
+  encoder: {mlp_keys: [], cnn_keys: ['image'], act: elu, norm: False, cnn_type: danijar, mlp_layers: [512, 512, 512, 512]}
+  decoder: {mlp_keys: [], cnn_keys: ['image'], act: elu, norm: False, cnn_type: danijar, mlp_layers: [512, 512, 512, 512]}
+  reward_head: {hidden_dims: [512, 512, 512, 512], act: elu, norm: False, dist: mse, activate_final: False}
+  discount_head: {hidden_dims: [512, 512, 512, 512], act: elu, norm: False, dist: binary, activate_final: False}
+  loss_scales: {kl: 1.0, reward: 1.0, discount: 1.0, proprio: 1.0}
+  kl: {free: 1.0, forward: False, balance: 0.8, free_avg: True, discrete_temp: 0.0}
+  model_opt: {lr: 1e-4, eps: 1e-5, clip: 100, wd: 1e-6}
+
+  # Actor Critic
+  actor: {hidden_dims: [512, 512, 512, 512], act: elu, norm: False, dist: trunc_normal, min_std: 0.1}
+  critic: {hidden_dims: [512, 512, 512, 512], act: elu, norm: False, dist: mse}
+  actor_opt: {lr: 8e-5, eps: 1e-5, clip: 100, wd: 1e-6}
+  critic_opt: {lr: 2e-4, eps: 1e-5, clip: 100, wd: 1e-6}
+  discount: 0.99
+  discount_lambda: 0.95
+  imag_horizon: 15
+  actor_grad: auto
+  actor_grad_mix: 0.1
+  actor_ent: 2e-3
+  slow_target: True
+  slow_target_update: 1
+  slow_target_fraction: 0.01
+  slow_baseline: True
+  reward_norm: {momentum: 1.0, scale: 1.0, eps: 1e-8}
+  rescale_rewards_wm_critic: identity
+  rescale_rewards_actor: identity
+
+  # Exploration
+  expl_intr_scale: 1.0
+  expl_extr_scale: 0.0
+  expl_opt: {opt: adam, lr: 3e-4, eps: 1e-5, clip: 100, wd: 1e-6}
+  expl_head: {layers: 4, units: 512, act: elu, norm: False, dist: mse}
+  expl_reward_norm: {momentum: 1.0, scale: 1.0, eps: 1e-8}
+  disag_target: stoch
+  disag_log: False
+  disag_models: 10
+  disag_offset: 1
+  disag_action_cond: True
+  expl_model_loss: kl
+
+atari:
+
+  task: atari_pong
+  encoder: {mlp_keys: [], cnn_keys: ['image']}
+  decoder: {mlp_keys: [], cnn_keys: ['image']}
+  time_limit: 27000
+  action_repeat: 4
+  steps: 5e7
+  eval_every: 2.5e5
+  log_every: 1e4
+  prefill: 50000
+  train_every: 16
+  clip_rewards: tanh
+  rssm: {mlp_hidden: 600, gru_hidden: 600}
+  model_opt.lr: 2e-4
+  actor_opt.lr: 4e-5
+  critic_opt.lr: 1e-4
+  actor_ent: 1e-3
+  discount: 0.999
+  loss_scales.kl: 0.1
+  loss_scales.discount: 5.0
+
+crafter:
+
+  task: crafter_reward
+  encoder: {mlp_keys: [], cnn_keys: ['image']}
+  decoder: {mlp_keys: [], cnn_keys: ['image']}
+  log_keys_max: '^log_achievement_.*'
+  log_keys_sum: '^log_reward$'
+  discount: 0.999
+  .*\.norm: layer
+
+dmc_vision:
+  task: dmc_walker_walk
+#  dmc_camera: -1
+  encoder: {mlp_keys: [], cnn_keys: ['image'], cnn_type: impala, mlp_layers: [256, 256]}
+  decoder: {mlp_keys: [], cnn_keys: ['image'], cnn_type: impala, mlp_layers: [256, 256]}
+  action_repeat: 2
+  prefill: 1000
+  pretrain: 100
+  time_limit: 0
+  clip_rewards: identity
+  pred_discount: False
+  grad_heads: [decoder, reward]
+  rssm: {mlp_hidden: 256, gru_hidden: 256, gru_layers: 4, stoch: 32, discrete: 32,}
+  model_opt.lr: 3e-4
+  actor_opt.lr: 8e-5
+  critic_opt.lr: 8e-5
+  actor_ent: 1e-4
+  kl.free: 1.0
+  log_every: 1e4
+  eval_every: 1e4
+
+metaworld:
+  # Tasks:
+  # ------
+  # reach-v2
+  # push-v2
+  # pick-place-v2
+  # door-open-v2
+  # drawer-close-v2
+  # button-press-topdown-v2
+  # peg-insert-side-v2
+  # window-open-v2
+  # sweep-v2
+  # basketball-v2
+  jit: True
+  envs: 10
+  action_repeat: 1
+  task: mw_ML10
+  render_size: [96, 96]
+  dmc_camera: corner3
+  obs_type: pixels
+  start_task: 0
+  n_tasks: 0
+  framestack: 1
+  data_aug: False
+  dataset: {batch: 8, length: 50}
+  imag_horizon: 15
+  eval_every: 1e3
+  prefill: 1000
+  pretrain: 100
+  clip_rewards: identity
+  pred_discount: False
+  grad_heads: [decoder, reward, discount]
+  rssm: {ensemble: 1, mlp_hidden: 256, gru_hidden: 256, gru_layers: 2, stoch: 64, discrete: 64, act: elu, norm: False, std_act: sigmoid2, min_std: 0.1}
+  encoder: {mlp_keys: [], cnn_keys: ['image'], act: elu, norm: False, cnn_type: impala, mlp_layers: [256, 256]}
+  decoder: {mlp_keys: [], cnn_keys: ['image'], act: elu, norm: False, cnn_type: impala, mlp_layers: [256, 256]}
+  reward_head: {hidden_dims: [256, 256], act: elu, norm: False, dist: mse, activate_final: False}
+  discount_head: {hidden_dims: [256, 256], act: elu, norm: False, dist: binary, activate_final: False}
+  actor: {hidden_dims: [256, 256], act: elu, norm: False, dist: trunc_normal, min_std: 0.1}
+  critic: {hidden_dims: [256, 256], act: elu, norm: False, dist: mse}
+  model_opt.lr: 3e-4
+  actor_opt.lr: 8e-5
+  critic_opt.lr: 8e-5
+  actor_ent: 1e-4
+  kl.free: 1.0
+  actor_grad: auto
+  log_keys_max: '^log_success*'
+  log_keys_mean: '^log*'
+  rescale_rewards_wm_critic: identity
+  rescale_rewards_actor: identity
+
+dmc_proprio:
+
+  task: dmc_walker_walk
+  encoder: {mlp_keys: ['image', 'reward'], cnn_keys: []}
+  decoder: {mlp_keys: ['image', 'reward'], cnn_keys: []}
+  action_repeat: 2
+  eval_every: 1e4
+  prefill: 1000
+  pretrain: 100
+  clip_rewards: identity
+  pred_discount: False
+  replay.prioritize_ends: False
+  grad_heads: [decoder, reward]
+  rssm: {mlp_hidden: 256, gru_hidden: 256}
+  model_opt.lr: 3e-4
+  actor_opt.lr: 8e-5
+  critic_opt.lr: 8e-5
+  actor_ent: 1e-4
+  kl.free: 1.0
+
+debug:
+
+  task: dmc_walker_walk
+  encoder: {mlp_keys: [], cnn_keys: ['image']}
+  decoder: {mlp_keys: [], cnn_keys: ['image']}
+  action_repeat: 1
+  eval_every: 1e4
+  render_size: [64, 64]
+  prefill: 1000
+  pretrain: 1
+  clip_rewards: identity
+  pred_discount: False
+  grad_heads: [decoder, reward]
+  rssm: {mlp_hidden: 256, gru_hidden: 256}
+  model_opt.lr: 3e-4
+  actor_opt.lr: 8e-5
+  critic_opt.lr: 8e-5
+  actor_ent: 1e-4
+  kl.free: 1.0
+  log_keys_max: '^log*'
+  log_keys_mean: '^log*'
